@@ -75,12 +75,6 @@ export class TipccClient extends EventEmitter {
     if (!/(^[A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]*$)/.test(token))
       throw new Error('Invalid token provided');
 
-    this.wallets = new WalletManager({
-      client: this,
-    });
-    this.transactions = new TransactionManager({
-      client: this,
-    });
     this.cryptos = new CryptocurrencyCache(this);
     this.fiats = new FiatCache(this);
     this.exchangeRates = new ExchangeRateCache(this);
@@ -92,6 +86,15 @@ export class TipccClient extends EventEmitter {
 
     if (options.pollingInterval) this.pollingInterval = options.pollingInterval;
     if (options.maxRetries) this.maxRetries = options.maxRetries;
+
+    this.wallets = new WalletManager({
+      client: this,
+    });
+    this.transactions = new TransactionManager({
+      client: this,
+      pollingInterval: this.pollingInterval,
+      maxPollingRetries: this.maxRetries,
+    });
 
     this._init();
   }
