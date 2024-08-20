@@ -1,6 +1,6 @@
 {
   "name": "tipcc.js",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "tip.cc API Client",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
