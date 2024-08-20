@@ -46,6 +46,9 @@ export class TipccClient extends EventEmitter {
   /** The number of milliseconds between each API poll  */
   public pollingInterval = 10000;
 
+  /** The number of milliseconds to wait before retrying an API poll */
+  public retryInterval = 2000;
+
   /** The max number of retries to poll the API, after which an error will be thrown */
   public maxRetries = 5;
 
@@ -60,6 +63,7 @@ export class TipccClient extends EventEmitter {
    * @param options The options to use
    * @param options.baseUrl The base URL for requests
    * @param options.pollingInterval The number of milliseconds between each API poll. Defaults to `10000`.
+   * @param options.retryInterval The number of milliseconds to wait before retrying an API poll. Defaults to `2000`.
    * @param options.maxRetries The max number of retries to poll the API, after which an error will be thrown. Defaults to `5`.
    */
   constructor(
@@ -67,6 +71,7 @@ export class TipccClient extends EventEmitter {
     options: {
       baseUrl?: string;
       pollingInterval?: number;
+      retryInterval?: number;
       maxRetries?: number;
     } = {},
   ) {
@@ -75,12 +80,6 @@ export class TipccClient extends EventEmitter {
     if (!/(^[A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]*$)/.test(token))
       throw new Error('Invalid token provided');
 
-    this.wallets = new WalletManager({
-      client: this,
-    });
-    this.transactions = new TransactionManager({
-      client: this,
-    });
     this.cryptos = new CryptocurrencyCache(this);
     this.fiats = new FiatCache(this);
     this.exchangeRates = new ExchangeRateCache(this);
@@ -91,7 +90,18 @@ export class TipccClient extends EventEmitter {
     });
 
     if (options.pollingInterval) this.pollingInterval = options.pollingInterval;
+    if (options.retryInterval) this.retryInterval = options.retryInterval;
     if (options.maxRetries) this.maxRetries = options.maxRetries;
+
+    this.wallets = new WalletManager({
+      client: this,
+    });
+    this.transactions = new TransactionManager({
+      client: this,
+      pollingInterval: this.pollingInterval,
+      maxPollingRetries: this.maxRetries,
+      retryInterval: this.retryInterval,
+    });
 
     this._init();
   }

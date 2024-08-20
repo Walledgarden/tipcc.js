@@ -42,6 +42,8 @@ export class TransactionManager extends EventEmitter {
 
   private _pollingInterval = 5000;
 
+  private _retryInterval = 2000;
+
   private _lastPoll: Date = new Date();
 
   private _pollingTimeout: NodeJS.Timeout | null = null;
@@ -61,14 +63,22 @@ export class TransactionManager extends EventEmitter {
     cacheTtl?: number;
     pollingInterval?: number;
     maxPollingRetries?: number;
+    retryInterval?: number;
   }) {
-    const { client, cacheTtl, pollingInterval, maxPollingRetries } = payload;
+    const {
+      client,
+      cacheTtl,
+      pollingInterval,
+      maxPollingRetries,
+      retryInterval,
+    } = payload;
     super();
     this.client = client;
     this.cache = new Cache(cacheTtl);
 
     if (pollingInterval) this._pollingInterval = pollingInterval;
     if (maxPollingRetries) this._maxPollingRetries = maxPollingRetries;
+    if (retryInterval) this._retryInterval = retryInterval;
   }
 
   public async fetch(id: string, cache = true): Promise<Transaction | null> {
@@ -150,6 +160,9 @@ export class TransactionManager extends EventEmitter {
           transactions.set(tx.id, new Transaction(tx, this.client));
       } catch (e) {
         this._pollingRetries++;
+        await new Promise((resolve) =>
+          setTimeout(resolve, this._retryInterval),
+        );
 
         if (this._pollingRetries >= this._maxPollingRetries)
           throw new Error(
